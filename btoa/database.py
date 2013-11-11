@@ -19,6 +19,8 @@ class BtoaDb:
         self.config = config
         self.path = db_path
 
+        self.tracks = []
+
 
     ## Connect to the database.
     def _connect(self):
@@ -63,11 +65,9 @@ class BtoaDb:
             self._connect()
 
             args = (playlist_id, )
-            tracks = self._c.execute('SELECT TrackID FROM CorePlaylistEntries WHERE PlaylistID = ?;', args).fetchall()
+            self.tracks = self._c.execute('SELECT TrackID FROM CorePlaylistEntries WHERE PlaylistID = ?;', args).fetchall()
         
             self._close()
-
-            return tracks
 
         except sqlite3.OperationalError:
             print "Could not fetch tracks in the playlist from the Banshee database."
@@ -77,32 +77,32 @@ class BtoaDb:
 
 
     def get_tocopy_details(self, tocopy):
-        try:
-            self._connect()
+        self._connect()
 
-            tocopy_details = []
+        tocopy_details = []
 
-            for track in tocopy:
-                args = (track[0], )
+        for track in tocopy:
+            args = (track[0], )
 
-                if self.config.debug:
-                    print "Fetching details from database for track #" + str(track[0])
+            if self.config.debug:
+                print "\tFetching details from database for track #" + str(track[0]) +"..."
 
+            try:
                 track_details = self._c.execute("SELECT Uri, Title FROM CoreTracks WHERE TrackID = ?;", args).fetchone()
-                
                 track_path = urllib.unquote(track_details[0])[7:].encode('latin1')
                 track_title = urllib.unquote(track_details[1])
-
                 tocopy_details.append([track_path, track_title])
+                print "done."
+            except:
+                print "FAIL."
+                sys.exit(2)
 
-            self._close()
+        self._close()
 
-            return tocopy_details
+        return tocopy_details
 
-        except:
-            print "Could not fetch track details from database."
-            sys.exit(1)
-            
+
+
 
     ## Close the connection to the database.
     #
